@@ -1,0 +1,42 @@
+services:
+  app:
+    build: .
+    container_name: api-admin-panel
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./logs:/logs
+    networks:
+      - api-admin-panel-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: api-admin-panel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - api-admin-panel-network
+
+volumes:
+  mysql_data:
+
+networks:
+  api-admin-panel-network:
+    driver: bridge
