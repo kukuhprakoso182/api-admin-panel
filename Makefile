@@ -39,9 +39,32 @@ tidy:
 lint:
 	golangci-lint run ./...
 
-## Test
+## ── Testing ───────────────────────────────────────────────────────────────────
+ 
+## Jalankan semua unit test
 test:
-	go test ./... -v -cover
+	go test ./tests/unit/... -v
+ 
+## Jalankan unit test dengan coverage report
+test-cover:
+	go test ./tests/unit/... -coverprofile=coverage.out -covermode=atomic
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: coverage.html"
+ 
+## Jalankan integration test (butuh server berjalan)
+## Contoh: make test-integration BASE_URL=http://localhost:8080
+test-integration:
+	TEST_BASE_URL=$(or $(BASE_URL),http://localhost:8080) \
+	go test ./tests/integration/... -tags=integration -v
+ 
+## Jalankan usecase tests saja
+test-usecase:
+	go test ./tests/unit/usecase/... -v
+ 
+## Jalankan handler tests saja
+test-handler:
+	go test ./tests/unit/handler/... -v
+ 
 
 ## Cari log berdasarkan request_id di semua file log atau tanggal tertentu
 ## Contoh cari semua file : make search-log RID=xxxx-xxxx-xxxx-xxxx
