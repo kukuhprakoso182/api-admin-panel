@@ -19,12 +19,18 @@ func seedUsers(db *gorm.DB) error {
 
 	users := []userSeed{
 		{
-			Name: "Super Administrator", Email: "superadmin@example.com",
-			Password: "password123", RoleIDs: []string{"superadmin", "admin"}, StatusID: "active",
+			Name:     "Super Administrator",
+			Email:    "superadmin@example.com",
+			Password: "password123",
+			RoleIDs:  []string{"super_admin", "admin"}, // fix: "superadmin" → "super_admin"
+			StatusID: "active",
 		},
 		{
-			Name: "Administrator", Email: "admin@example.com",
-			Password: "password123", RoleIDs: []string{"admin"}, StatusID: "active",
+			Name:     "Administrator",
+			Email:    "admin@example.com",
+			Password: "password123",
+			RoleIDs:  []string{"admin"},
+			StatusID: "active",
 		},
 	}
 
