@@ -7,15 +7,16 @@ import (
 )
 
 func seedRoles(db *gorm.DB) error {
-	childRoles := `["staff"]`
+	superAdminChildRoles := "super_admin,admin"
+	adminChildRoles := "admin"
+
 	roles := []entity.Role{
-		{ID: "superadmin", Name: "Super Admin", IsActive: true},
-		{ID: "admin", Name: "Admin", IsActive: true},
-		{ID: "manager", Name: "Manager", ChildRoles: &childRoles, IsActive: true},
-		{ID: "staff", Name: "Staff", IsActive: true},
+		{ID: "super_admin", Name: "Super Admin", ChildRoles: &superAdminChildRoles, IsActive: true},
+		{ID: "admin", Name: "Admin", ChildRoles: &adminChildRoles, IsActive: true},
 	}
-	for _, v := range roles {
-		if err := db.Where("id = ?", v.ID).FirstOrCreate(&v).Error; err != nil {
+
+	for _, r := range roles {
+		if err := db.Where("id = ?", r.ID).FirstOrCreate(&r).Error; err != nil {
 			return err
 		}
 	}

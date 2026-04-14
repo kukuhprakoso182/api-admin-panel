@@ -26,14 +26,6 @@ func seedUsers(db *gorm.DB) error {
 			Name: "Administrator", Email: "admin@example.com",
 			Password: "password123", RoleIDs: []string{"admin"}, StatusID: "active",
 		},
-		{
-			Name: "Manager Staff", Email: "manager@example.com",
-			Password: "password123", RoleIDs: []string{"manager", "staff"}, StatusID: "active",
-		},
-		{
-			Name: "Staff User", Email: "staff@example.com",
-			Password: "password123", RoleIDs: []string{"staff"}, StatusID: "active",
-		},
 	}
 
 	for _, u := range users {

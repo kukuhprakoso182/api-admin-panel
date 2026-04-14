@@ -8,6 +8,7 @@ import (
 
 func seedStatuses(db *gorm.DB) error {
 	statuses := []entity.Status{
+		{ID: "registered", Name: "Registered", IsActive: true},
 		{ID: "active", Name: "Active", IsActive: true},
 		{ID: "inactive", Name: "Inactive", IsActive: true},
 		{ID: "suspended", Name: "Suspended", IsActive: true},

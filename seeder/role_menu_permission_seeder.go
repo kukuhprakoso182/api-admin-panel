@@ -8,7 +8,14 @@ import (
 )
 
 func seedRoleMenuPermissions(db *gorm.DB) error {
-	// Cari menu berdasarkan nama (sesuai PHP seeder)
+	// Skip jika sudah ada data
+	var count int64
+	db.Model(&entity.RoleMenuPermission{}).Count(&count)
+	if count > 0 {
+		return nil
+	}
+
+	// Cari menu berdasarkan nama
 	findMenu := func(name string) (uint64, error) {
 		var m entity.Menu
 		if err := db.Where("name = ?", name).First(&m).Error; err != nil {
@@ -65,7 +72,7 @@ func seedRoleMenuPermissions(db *gorm.DB) error {
 	}
 
 	seeds := []rmpSeed{
-		// ── admin ──────────────────────────────────────────────────────────────────
+		// ── admin ──────────────────────────────────────────────────────────────
 		{RoleID: "admin", MenuID: dashboard, PermissionID: "view"},
 		{RoleID: "admin", MenuID: user, PermissionID: "view"},
 		{RoleID: "admin", MenuID: user, PermissionID: "create"},
@@ -77,7 +84,7 @@ func seedRoleMenuPermissions(db *gorm.DB) error {
 		{RoleID: "admin", MenuID: profile, PermissionID: "change_profile"},
 		{RoleID: "admin", MenuID: profile, PermissionID: "change_password"},
 
-		// ── super_admin ──────────────────────────────────────────────────────────────────
+		// ── super_admin ────────────────────────────────────────────────────────
 		{RoleID: "super_admin", MenuID: dashboard, PermissionID: "view"},
 		{RoleID: "super_admin", MenuID: user, PermissionID: "view"},
 		{RoleID: "super_admin", MenuID: user, PermissionID: "create"},
