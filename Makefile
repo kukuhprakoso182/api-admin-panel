@@ -19,6 +19,10 @@ seed:
 migrate-seed:
 	go run $(MAIN) -migrate -seed
 
+## Jalankan fresh (delete all tables) + migrate + seed (first time setup)
+fresh-migrate-seed:
+	go run $(MAIN) -fresh -migrate -seed
+
 ## Build binary
 build:
 	go build -o bin/$(APP_NAME) $(MAIN)

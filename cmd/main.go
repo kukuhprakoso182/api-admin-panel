@@ -21,8 +21,9 @@ const version = "1.0.0"
 
 func main() {
 	// ── Flags ─────────────────────────────────────────────────────────────────
+	withFresh := flag.Bool("fresh", false, "drop all tables before running migrations and seeders")
 	withMigrate := flag.Bool("migrate", false, "run database migrations before starting")
-	withSeed    := flag.Bool("seed", false, "run database seeders before starting")
+	withSeed := flag.Bool("seed", false, "run database seeders before starting")
 	flag.Parse()
 
 	// ── Config ────────────────────────────────────────────────────────────────
@@ -46,8 +47,8 @@ func main() {
 	}
 
 	// ── Migrations ────────────────────────────────────────────────────────────
-	if *withMigrate {
-		if err := migrations.Run(app.DB); err != nil {
+	if *withMigrate && *withFresh {
+		if err := migrations.Run(app.DB, *withFresh); err != nil {
 			log.Fatal("failed to run migrations", applogger.F("error", err))
 		}
 		log.Info("migrations completed")

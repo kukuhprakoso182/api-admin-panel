@@ -2,11 +2,12 @@ package migrations
 
 import (
 	"api-admin-panel/internal/domain/entity"
+
 	"gorm.io/gorm"
 )
 
 // Run menjalankan auto-migration semua tabel sesuai urutan dependency.
-func Run(db *gorm.DB) error {
+func Run(db *gorm.DB, fresh bool) error {
 	tables := []interface{}{
 		&entity.Icon{},
 		&entity.Status{},
@@ -16,6 +17,10 @@ func Run(db *gorm.DB) error {
 		&entity.User{},
 		&entity.UserRole{},
 		&entity.RoleMenuPermission{},
+	}
+
+	if fresh {
+		db.Migrator().DropTable(tables...)
 	}
 
 	for _, table := range tables {
