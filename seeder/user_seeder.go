@@ -22,7 +22,7 @@ func seedUsers(db *gorm.DB) error {
 			Name:     "Super Administrator",
 			Email:    "superadmin@example.com",
 			Password: "password123",
-			RoleIDs:  []string{"super_admin", "admin"}, // fix: "superadmin" → "super_admin"
+			RoleIDs:  []string{"super_admin", "admin"},
 			StatusID: "active",
 		},
 		{
@@ -35,8 +35,11 @@ func seedUsers(db *gorm.DB) error {
 	}
 
 	for _, u := range users {
+		// Gunakan Find+Limit agar tidak trigger log "record not found" dari GORM
 		var existing entity.User
-		if err := db.Where("email = ?", u.Email).First(&existing).Error; err == nil {
+		db.Where("email = ?", u.Email).Limit(1).Find(&existing)
+		if existing.ID != "" {
+			// User sudah ada, skip
 			continue
 		}
 
