@@ -5,7 +5,6 @@ import (
 
 	"api-admin-panel/internal/domain/entity"
 	"api-admin-panel/internal/usecase"
-	"api-admin-panel/pkg/jwt"
 	"api-admin-panel/tests/testhelper"
 
 	"github.com/stretchr/testify/assert"
@@ -14,34 +13,54 @@ import (
 	"gorm.io/gorm"
 )
 
+// ── Auth Usecase Tests ────────────────────────────────────────────────────────
+
 func TestLogin_Success(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
-	jwtCfg := &jwt.JWTConfig{
-		Secret:              "test-secret-key-at-least-32-chars!!",
-		AccessExpireMinutes: 60,
-		RefreshExpireHours:  168,
+	mockJWT := new(testhelper.MockJWTService)
+
+	hashed, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	user := &entity.User{
+		ID:       "user-123",
+		Email:    "admin@example.com",
+		Password: string(hashed),
+		Roles:    []entity.Role{{ID: "admin"}},
 	}
-	// Butuh import config, gunakan pkg/jwt langsung
-	_ = jwtCfg
-	_ = mockRepo
-	t.Skip("requires jwt config - see integration test")
+
+	mockRepo.On("FindByEmail", "admin@example.com").Return(user, nil)
+	mockJWT.On("GenerateTokenPair", "user-123", "admin", "admin@example.com").
+		Return(map[string]interface{}{"access_token": "token-xxx"}, nil)
+
+	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
+	_, err := uc.Login(&usecase.LoginRequest{
+		Email:    "admin@example.com",
+		Password: "password123",
+	})
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
 func TestLogin_InvalidEmail(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
+	mockJWT := new(testhelper.MockJWTService)
 
 	mockRepo.On("FindByEmail", "notfound@example.com").
 		Return(nil, gorm.ErrRecordNotFound)
 
-	cfg := &struct{ Secret string }{Secret: "secret"}
-	_ = cfg
+	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
+	_, err := uc.Login(&usecase.LoginRequest{
+		Email:    "notfound@example.com",
+		Password: "password123",
+	})
 
-	// Verifikasi mock dipanggil
+	assert.ErrorIs(t, err, usecase.ErrInvalidCreds)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
+	mockJWT := new(testhelper.MockJWTService)
 
 	hashed, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
 	user := &entity.User{
@@ -53,8 +72,18 @@ func TestLogin_WrongPassword(t *testing.T) {
 
 	mockRepo.On("FindByEmail", "test@example.com").Return(user, nil)
 
+	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
+	_, err := uc.Login(&usecase.LoginRequest{
+		Email:    "test@example.com",
+		Password: "wrongpassword",
+	})
+
+	assert.ErrorIs(t, err, usecase.ErrInvalidCreds)
 	mockRepo.AssertExpectations(t)
+	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
+
+// ── User Usecase Tests ────────────────────────────────────────────────────────
 
 func TestUserUsecase_GetByID_NotFound(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
@@ -99,6 +128,8 @@ func TestUserUsecase_Delete_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, usecase.ErrNotFound)
 	mockRepo.AssertExpectations(t)
 }
+
+// ── Icon Usecase Tests ────────────────────────────────────────────────────────
 
 func TestIconUsecase_GetAll(t *testing.T) {
 	mockRepo := new(testhelper.MockIconRepository)
@@ -148,6 +179,8 @@ func TestIconUsecase_Create(t *testing.T) {
 	assert.True(t, icon.IsActive)
 	mockRepo.AssertExpectations(t)
 }
+
+// ── Role Usecase Tests ────────────────────────────────────────────────────────
 
 func TestRoleUsecase_GetAll(t *testing.T) {
 	mockRepo := new(testhelper.MockRoleRepository)
