@@ -5,6 +5,7 @@ import (
 
 	"api-admin-panel/internal/domain/entity"
 	"api-admin-panel/internal/usecase"
+	pkgjwt "api-admin-panel/pkg/jwt"
 	"api-admin-panel/tests/testhelper"
 
 	"github.com/stretchr/testify/assert"
@@ -29,16 +30,23 @@ func TestLogin_Success(t *testing.T) {
 
 	mockRepo.On("FindByEmail", "admin@example.com").Return(user, nil)
 	mockJWT.On("GenerateTokenPair", "user-123", "admin", "admin@example.com").
-		Return(map[string]interface{}{"access_token": "token-xxx"}, nil)
+		Return(&pkgjwt.TokenPair{
+			AccessToken:  "access-token-xxx",
+			RefreshToken: "refresh-token-xxx",
+			ExpiresAt:    9999999999,
+		}, nil)
 
 	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
-	_, err := uc.Login(&usecase.LoginRequest{
+	result, err := uc.Login(&usecase.LoginRequest{
 		Email:    "admin@example.com",
 		Password: "password123",
 	})
 
 	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "access-token-xxx", result.AccessToken)
 	mockRepo.AssertExpectations(t)
+	mockJWT.AssertExpectations(t)
 }
 
 func TestLogin_InvalidEmail(t *testing.T) {
@@ -56,6 +64,7 @@ func TestLogin_InvalidEmail(t *testing.T) {
 
 	assert.ErrorIs(t, err, usecase.ErrInvalidCreds)
 	mockRepo.AssertExpectations(t)
+	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
