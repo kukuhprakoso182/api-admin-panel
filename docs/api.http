@@ -1,0 +1,424 @@
+# ============================================================
+# API Admin Panel — REST Client Request Collection
+# Compatible: VS Code REST Client extension / JetBrains HTTP Client
+#
+# Setup:
+# 1. Install "REST Client" extension di VS Code (Huachao Mao)
+# 2. Isi @token setelah login
+# 3. Klik "Send Request" di atas tiap request
+# ============================================================
+
+@baseUrl = http://localhost:8080
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiZGM1YTM3NmEtNzk2Ny00MTUzLWE2MTMtMGM4MGNiODMzNjk5Iiwicm9sZV9pZCI6ImFkbWluLHN1cGVyX2FkbWluIiwiZW1haWwiOiJzdXBlcmFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzc2NjU3NTQ0LCJpYXQiOjE3NzY2NTM5NDR9.eMUOe3qyRa9jTImBpW-JoPJthB1lS-zdmZPVuNBxTr4
+@contentType = application/json
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+### Health Check
+GET {{baseUrl}}/health
+
+# ============================================================
+# AUTH
+# ============================================================
+
+### Login — Super Admin
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "password123"
+}
+
+### Login — Admin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Login — Invalid Credentials
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "wrongpassword"
+}
+
+### Login — Validation Error (email tidak valid)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "bukan-email",
+  "password": "password123"
+}
+
+### Refresh Token
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refresh_token": "PASTE_REFRESH_TOKEN_DISINI"
+}
+
+# ============================================================
+# USERS
+# ============================================================
+
+### Get All Users
+GET {{baseUrl}}/api/v1/users
+Authorization: Bearer {{token}}
+
+### Get All Users — Dengan Pagination
+GET {{baseUrl}}/api/v1/users?page=1&limit=5
+Authorization: Bearer {{token}}
+
+### Get User By ID
+GET {{baseUrl}}/api/v1/users/PASTE_USER_ID_DISINI
+Authorization: Bearer {{token}}
+
+### Get User By ID — Not Found
+GET {{baseUrl}}/api/v1/users/dc5a376a-7967-4153-a613-0c80cb833699
+Authorization: Bearer {{token}}
+
+### Create User
+POST {{baseUrl}}/api/v1/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "email": "johndoe@example.com",
+  "password": "password123",
+  "status_id": "active",
+  "role_ids": ["admin"]
+}
+
+### Create User — Multi Role
+POST {{baseUrl}}/api/v1/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Jane Smith",
+  "email": "janesmith@example.com",
+  "password": "password123",
+  "status_id": "active",
+  "role_ids": ["super_admin", "admin"]
+}
+
+### Create User — Validation Error
+POST {{baseUrl}}/api/v1/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "",
+  "email": "bukan-email",
+  "password": "short"
+}
+
+### Update User
+PUT {{baseUrl}}/api/v1/users/PASTE_USER_ID_DISINI
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe Updated",
+  "email": "johndoe@example.com",
+  "status_id": "active",
+  "role_ids": ["admin"]
+}
+
+### Update User — Ganti Password
+PUT {{baseUrl}}/api/v1/users/PASTE_USER_ID_DISINI
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "email": "johndoe@example.com",
+  "password": "newpassword123",
+  "status_id": "active",
+  "role_ids": ["admin"]
+}
+
+### Delete User
+DELETE {{baseUrl}}/api/v1/users/PASTE_USER_ID_DISINI
+Authorization: Bearer {{token}}
+
+# ============================================================
+# ROLES
+# ============================================================
+
+### Get All Roles
+GET {{baseUrl}}/api/v1/roles
+Authorization: Bearer {{token}}
+
+### Get Role By ID
+GET {{baseUrl}}/api/v1/roles/super_admin
+Authorization: Bearer {{token}}
+
+### Get Role By ID — Admin
+GET {{baseUrl}}/api/v1/roles/admin
+Authorization: Bearer {{token}}
+
+### Get Role By ID — Not Found
+GET {{baseUrl}}/api/v1/roles/ghost-role
+Authorization: Bearer {{token}}
+
+### Create Role
+POST {{baseUrl}}/api/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "manager",
+  "name": "Manager",
+  "child_roles": "manager,staff"
+}
+
+### Create Role — Tanpa Child Roles
+POST {{baseUrl}}/api/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "staff",
+  "name": "Staff"
+}
+
+### Update Role
+PUT {{baseUrl}}/api/v1/roles/manager
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Manager Updated",
+  "child_roles": "manager",
+  "is_active": true
+}
+
+### Delete Role
+DELETE {{baseUrl}}/api/v1/roles/staff
+Authorization: Bearer {{token}}
+
+# ============================================================
+# STATUSES
+# ============================================================
+
+### Get All Statuses
+GET {{baseUrl}}/api/v1/statuses
+Authorization: Bearer {{token}}
+
+### Get Status By ID
+GET {{baseUrl}}/api/v1/statuses/active
+Authorization: Bearer {{token}}
+
+### Create Status
+POST {{baseUrl}}/api/v1/statuses
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "banned",
+  "name": "Banned"
+}
+
+### Update Status
+PUT {{baseUrl}}/api/v1/statuses/banned
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Banned Updated",
+  "is_active": true
+}
+
+### Delete Status
+DELETE {{baseUrl}}/api/v1/statuses/banned
+Authorization: Bearer {{token}}
+
+# ============================================================
+# MENUS
+# ============================================================
+
+### Get All Menus
+GET {{baseUrl}}/api/v1/menus
+Authorization: Bearer {{token}}
+
+### Get Menu By ID
+GET {{baseUrl}}/api/v1/menus/1
+Authorization: Bearer {{token}}
+
+### Create Menu — Root
+POST {{baseUrl}}/api/v1/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Reports",
+  "link": "reports",
+  "link_alias": "reports",
+  "icon": "ri-bar-chart-line",
+  "parent": 0,
+  "order": 50
+}
+
+### Create Menu — Child
+POST {{baseUrl}}/api/v1/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Sales Report",
+  "link": "reports/sales",
+  "link_alias": "sales",
+  "icon": "ri-line-chart-line",
+  "parent": PASTE_PARENT_MENU_ID,
+  "order": 1
+}
+
+### Update Menu
+PUT {{baseUrl}}/api/v1/menus/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Dashboard Updated",
+  "link": "dashboard",
+  "link_alias": "dashboard",
+  "icon": "ri-home-6-line",
+  "parent": 0,
+  "order": 1,
+  "is_active": true
+}
+
+### Delete Menu
+DELETE {{baseUrl}}/api/v1/menus/PASTE_MENU_ID_DISINI
+Authorization: Bearer {{token}}
+
+# ============================================================
+# PERMISSIONS
+# ============================================================
+
+### Get All Permissions
+GET {{baseUrl}}/api/v1/permissions
+Authorization: Bearer {{token}}
+
+### Get Permission By ID
+GET {{baseUrl}}/api/v1/permissions/view
+Authorization: Bearer {{token}}
+
+### Create Permission
+POST {{baseUrl}}/api/v1/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "export",
+  "name": "Export"
+}
+
+### Create Permission — Custom
+POST {{baseUrl}}/api/v1/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "change_status",
+  "name": "Change Status"
+}
+
+### Update Permission
+PUT {{baseUrl}}/api/v1/permissions/export
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Export Data",
+  "is_active": true
+}
+
+### Delete Permission
+DELETE {{baseUrl}}/api/v1/permissions/export
+Authorization: Bearer {{token}}
+
+# ============================================================
+# ICONS
+# ============================================================
+
+### Get All Icons
+GET {{baseUrl}}/api/v1/icons
+Authorization: Bearer {{token}}
+
+### Get All Icons — Pagination
+GET {{baseUrl}}/api/v1/icons?page=1&limit=20
+Authorization: Bearer {{token}}
+
+### Get Icon By ID
+GET {{baseUrl}}/api/v1/icons/ri-home-line
+Authorization: Bearer {{token}}
+
+### Get Icon By ID — Not Found
+GET {{baseUrl}}/api/v1/icons/ri-ghost-icon
+Authorization: Bearer {{token}}
+
+### Create Icon
+POST {{baseUrl}}/api/v1/icons
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "id": "ri-custom-icon",
+  "name": "custom-icon",
+  "section": "custom"
+}
+
+### Update Icon
+PUT {{baseUrl}}/api/v1/icons/ri-custom-icon
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "custom-icon-updated",
+  "section": "custom",
+  "is_active": true
+}
+
+### Deactivate Icon
+PUT {{baseUrl}}/api/v1/icons/ri-custom-icon
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "custom-icon-updated",
+  "section": "custom",
+  "is_active": false
+}
+
+### Delete Icon
+DELETE {{baseUrl}}/api/v1/icons/ri-custom-icon
+Authorization: Bearer {{token}}
+
+# ============================================================
+# SECURITY TESTS
+# ============================================================
+
+### Akses tanpa token — harus 401
+GET {{baseUrl}}/api/v1/users
+
+### Token tidak valid — harus 401
+GET {{baseUrl}}/api/v1/users
+Authorization: Bearer token.tidak.valid
+
+### Token expired — harus 401
+GET {{baseUrl}}/api/v1/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsImV4cCI6MX0.invalid
