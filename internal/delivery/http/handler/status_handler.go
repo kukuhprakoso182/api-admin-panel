@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
+
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
@@ -17,23 +16,18 @@ func NewStatusHandler(statusUsecase usecase.StatusUsecase) *StatusHandler {
 }
 
 func (h *StatusHandler) GetAll(c *gin.Context) {
-	statuses, err := h.statusUsecase.GetAll()
+	statuses, err := h.statusUsecase.GetAll(c.Request.Context())
 	if err != nil {
-		response.InternalServerError(c, "failed to retrieve statuses")
+		handleError(c, err, "status")
 		return
 	}
 	response.OK(c, "statuses retrieved", statuses)
 }
 
 func (h *StatusHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	status, err := h.statusUsecase.GetByID(id)
+	status, err := h.statusUsecase.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "status not found")
-			return
-		}
-		response.InternalServerError(c, "failed to retrieve status")
+		handleError(c, err, "status")
 		return
 	}
 	response.OK(c, "status retrieved", status)
@@ -45,41 +39,31 @@ func (h *StatusHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	status, err := h.statusUsecase.Create(&req)
+	status, err := h.statusUsecase.Create(c.Request.Context(), &req)
 	if err != nil {
-		response.InternalServerError(c, "failed to create status")
+		handleError(c, err, "status")
 		return
 	}
 	response.Created(c, "status created", status)
 }
 
 func (h *StatusHandler) Update(c *gin.Context) {
-	id := c.Param("id")
 	var req usecase.UpdateStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	status, err := h.statusUsecase.Update(id, &req)
+	status, err := h.statusUsecase.Update(c.Request.Context(), c.Param("id"), &req)
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "status not found")
-			return
-		}
-		response.InternalServerError(c, "failed to update status")
+		handleError(c, err, "status")
 		return
 	}
 	response.OK(c, "status updated", status)
 }
 
 func (h *StatusHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.statusUsecase.Delete(id); err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "status not found")
-			return
-		}
-		response.InternalServerError(c, "failed to delete status")
+	if err := h.statusUsecase.Delete(c.Request.Context(), c.Param("id")); err != nil {
+		handleError(c, err, "status")
 		return
 	}
 	response.OK(c, "status deleted", nil)

@@ -18,26 +18,7 @@ func Timeout(duration time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), duration)
 		defer cancel()
-
-		// Ganti context request dengan yang ber-timeout
 		c.Request = c.Request.WithContext(ctx)
-
-		done := make(chan struct{}, 1)
-
-		go func() {
-			c.Next()
-			done <- struct{}{}
-		}()
-
-		select {
-		case <-done:
-			// Request selesai sebelum timeout
-		case <-ctx.Done():
-			c.JSON(http.StatusGatewayTimeout, gin.H{
-				"success": false,
-				"message": "request timeout",
-			})
-			c.Abort()
-		}
+		c.Next()
 	}
 }

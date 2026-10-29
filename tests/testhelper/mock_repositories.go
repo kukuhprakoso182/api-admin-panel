@@ -1,6 +1,8 @@
 package testhelper
 
 import (
+	"context"
+
 	"api-admin-panel/internal/domain/entity"
 	pkgjwt "api-admin-panel/pkg/jwt"
 
@@ -13,37 +15,39 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
-func (m *MockUserRepository) FindAll(page, limit int) ([]entity.User, int64, error) {
-	args := m.Called(page, limit)
-	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
+func (m *MockUserRepository) FindAll(ctx context.Context, page, limit int) ([]entity.User, int64, error) {
+	args := m.Called(ctx, page, limit)
+	users, _ := args.Get(0).([]entity.User)
+	total, _ := args.Get(1).(int64)
+	return users, total, args.Error(2)
 }
 
-func (m *MockUserRepository) FindByID(id string) (*entity.User, error) {
-	args := m.Called(id)
+func (m *MockUserRepository) FindByID(ctx context.Context, id string) (*entity.User, error) {
+	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
-func (m *MockUserRepository) FindByEmail(email string) (*entity.User, error) {
-	args := m.Called(email)
+func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
+	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
-func (m *MockUserRepository) Create(user *entity.User, roleIDs []string) error {
-	return m.Called(user, roleIDs).Error(0)
+func (m *MockUserRepository) Create(ctx context.Context, user *entity.User, roleIDs []string) error {
+	return m.Called(ctx, user, roleIDs).Error(0)
 }
 
-func (m *MockUserRepository) Update(user *entity.User, roleIDs []string) error {
-	return m.Called(user, roleIDs).Error(0)
+func (m *MockUserRepository) Update(ctx context.Context, user *entity.User, roleIDs []string) error {
+	return m.Called(ctx, user, roleIDs).Error(0)
 }
 
-func (m *MockUserRepository) Delete(id string) error {
-	return m.Called(id).Error(0)
+func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
+	return m.Called(ctx, id).Error(0)
 }
 
 // ── MockIconRepository ────────────────────────────────────────────────────────
@@ -52,29 +56,30 @@ type MockIconRepository struct {
 	mock.Mock
 }
 
-func (m *MockIconRepository) FindAll() ([]entity.Icon, error) {
-	args := m.Called()
-	return args.Get(0).([]entity.Icon), args.Error(1)
+func (m *MockIconRepository) FindAll(ctx context.Context) ([]entity.Icon, error) {
+	args := m.Called(ctx)
+	icons, _ := args.Get(0).([]entity.Icon)
+	return icons, args.Error(1)
 }
 
-func (m *MockIconRepository) FindByID(id string) (*entity.Icon, error) {
-	args := m.Called(id)
+func (m *MockIconRepository) FindByID(ctx context.Context, id string) (*entity.Icon, error) {
+	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.Icon), args.Error(1)
 }
 
-func (m *MockIconRepository) Create(icon *entity.Icon) error {
-	return m.Called(icon).Error(0)
+func (m *MockIconRepository) Create(ctx context.Context, icon *entity.Icon) error {
+	return m.Called(ctx, icon).Error(0)
 }
 
-func (m *MockIconRepository) Update(icon *entity.Icon) error {
-	return m.Called(icon).Error(0)
+func (m *MockIconRepository) Update(ctx context.Context, icon *entity.Icon) error {
+	return m.Called(ctx, icon).Error(0)
 }
 
-func (m *MockIconRepository) Delete(id string) error {
-	return m.Called(id).Error(0)
+func (m *MockIconRepository) Delete(ctx context.Context, id string) error {
+	return m.Called(ctx, id).Error(0)
 }
 
 // ── MockRoleRepository ────────────────────────────────────────────────────────
@@ -83,33 +88,34 @@ type MockRoleRepository struct {
 	mock.Mock
 }
 
-func (m *MockRoleRepository) FindAll() ([]entity.Role, error) {
-	args := m.Called()
-	return args.Get(0).([]entity.Role), args.Error(1)
+func (m *MockRoleRepository) FindAll(ctx context.Context) ([]entity.Role, error) {
+	args := m.Called(ctx)
+	roles, _ := args.Get(0).([]entity.Role)
+	return roles, args.Error(1)
 }
 
-func (m *MockRoleRepository) FindByID(id string) (*entity.Role, error) {
-	args := m.Called(id)
+func (m *MockRoleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
+	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.Role), args.Error(1)
 }
 
-func (m *MockRoleRepository) Create(role *entity.Role) error {
-	return m.Called(role).Error(0)
+func (m *MockRoleRepository) Create(ctx context.Context, role *entity.Role) error {
+	return m.Called(ctx, role).Error(0)
 }
 
-func (m *MockRoleRepository) Update(role *entity.Role) error {
-	return m.Called(role).Error(0)
+func (m *MockRoleRepository) Update(ctx context.Context, role *entity.Role) error {
+	return m.Called(ctx, role).Error(0)
 }
 
-func (m *MockRoleRepository) Delete(id string) error {
-	return m.Called(id).Error(0)
+func (m *MockRoleRepository) Delete(ctx context.Context, id string) error {
+	return m.Called(ctx, id).Error(0)
 }
 
 // ── MockJWTService ────────────────────────────────────────────────────────────
-// Mengimplementasikan pkgjwt.JWTService interface
+// Mengimplementasikan pkgjwt.JWTService interface (tidak berubah, tanpa ctx)
 
 type MockJWTService struct {
 	mock.Mock

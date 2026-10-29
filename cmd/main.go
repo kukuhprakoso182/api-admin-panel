@@ -67,11 +67,12 @@ func main() {
 
 	// ── HTTP Server ───────────────────────────────────────────────────────────
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%s", cfg.App.Port),
-		Handler:      app.Engine,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              addr,
+		Handler:           engine,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      35 * time.Second, // harus lebih besar dari Timeout middleware
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// Jalankan server di goroutine agar tidak blocking signal handler

@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
+
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
@@ -17,23 +16,18 @@ func NewRoleHandler(roleUsecase usecase.RoleUsecase) *RoleHandler {
 }
 
 func (h *RoleHandler) GetAll(c *gin.Context) {
-	roles, err := h.roleUsecase.GetAll()
+	roles, err := h.roleUsecase.GetAll(c.Request.Context())
 	if err != nil {
-		response.InternalServerError(c, "failed to retrieve roles")
+		handleError(c, err, "role")
 		return
 	}
 	response.OK(c, "roles retrieved", roles)
 }
 
 func (h *RoleHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	role, err := h.roleUsecase.GetByID(id)
+	role, err := h.roleUsecase.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "role not found")
-			return
-		}
-		response.InternalServerError(c, "failed to retrieve role")
+		handleError(c, err, "role")
 		return
 	}
 	response.OK(c, "role retrieved", role)
@@ -45,41 +39,31 @@ func (h *RoleHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	role, err := h.roleUsecase.Create(&req)
+	role, err := h.roleUsecase.Create(c.Request.Context(), &req)
 	if err != nil {
-		response.InternalServerError(c, "failed to create role")
+		handleError(c, err, "role")
 		return
 	}
 	response.Created(c, "role created", role)
 }
 
 func (h *RoleHandler) Update(c *gin.Context) {
-	id := c.Param("id")
 	var req usecase.UpdateRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	role, err := h.roleUsecase.Update(id, &req)
+	role, err := h.roleUsecase.Update(c.Request.Context(), c.Param("id"), &req)
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "role not found")
-			return
-		}
-		response.InternalServerError(c, "failed to update role")
+		handleError(c, err, "role")
 		return
 	}
 	response.OK(c, "role updated", role)
 }
 
 func (h *RoleHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.roleUsecase.Delete(id); err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "role not found")
-			return
-		}
-		response.InternalServerError(c, "failed to delete role")
+	if err := h.roleUsecase.Delete(c.Request.Context(), c.Param("id")); err != nil {
+		handleError(c, err, "role")
 		return
 	}
 	response.OK(c, "role deleted", nil)

@@ -1,11 +1,15 @@
 package repository
 
-import "api-admin-panel/internal/domain/entity"
+import (
+	"context"
+
+	"api-admin-panel/internal/domain/entity"
+)
 
 type RoleRepository interface {
-	FindAll() ([]entity.Role, error)
-	FindByID(id string) (*entity.Role, error)
-	Create(role *entity.Role) error
-	Update(role *entity.Role) error
-	Delete(id string) error
+	FindAll(ctx context.Context) ([]entity.Role, error)
+	FindByID(ctx context.Context, id string) (*entity.Role, error)
+	Create(ctx context.Context, role *entity.Role) error
+	Update(ctx context.Context, role *entity.Role) error
+	Delete(ctx context.Context, id string) error
 }

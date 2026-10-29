@@ -1,19 +1,18 @@
 package usecase
 
 import (
-	"errors"
+	"context"
 
 	"api-admin-panel/internal/domain/entity"
 	"api-admin-panel/internal/domain/repository"
-	"gorm.io/gorm"
 )
 
 type IconUsecase interface {
-	GetAll() ([]entity.Icon, error)
-	GetByID(id string) (*entity.Icon, error)
-	Create(req *CreateIconRequest) (*entity.Icon, error)
-	Update(id string, req *UpdateIconRequest) (*entity.Icon, error)
-	Delete(id string) error
+	GetAll(ctx context.Context) ([]entity.Icon, error)
+	GetByID(ctx context.Context, id string) (*entity.Icon, error)
+	Create(ctx context.Context, req *CreateIconRequest) (*entity.Icon, error)
+	Update(ctx context.Context, id string, req *UpdateIconRequest) (*entity.Icon, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type CreateIconRequest struct {
@@ -36,36 +35,29 @@ func NewIconUsecase(repo repository.IconRepository) IconUsecase {
 	return &iconUsecase{repo: repo}
 }
 
-func (u *iconUsecase) GetAll() ([]entity.Icon, error) {
-	return u.repo.FindAll()
+func (u *iconUsecase) GetAll(ctx context.Context) ([]entity.Icon, error) {
+	return u.repo.FindAll(ctx)
 }
 
-func (u *iconUsecase) GetByID(id string) (*entity.Icon, error) {
-	icon, err := u.repo.FindByID(id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	return icon, nil
+func (u *iconUsecase) GetByID(ctx context.Context, id string) (*entity.Icon, error) {
+	return u.repo.FindByID(ctx, id)
 }
 
-func (u *iconUsecase) Create(req *CreateIconRequest) (*entity.Icon, error) {
+func (u *iconUsecase) Create(ctx context.Context, req *CreateIconRequest) (*entity.Icon, error) {
 	icon := &entity.Icon{
 		ID:       req.ID,
 		Name:     req.Name,
 		Section:  req.Section,
 		IsActive: true,
 	}
-	if err := u.repo.Create(icon); err != nil {
+	if err := u.repo.Create(ctx, icon); err != nil {
 		return nil, err
 	}
 	return icon, nil
 }
 
-func (u *iconUsecase) Update(id string, req *UpdateIconRequest) (*entity.Icon, error) {
-	icon, err := u.GetByID(id)
+func (u *iconUsecase) Update(ctx context.Context, id string, req *UpdateIconRequest) (*entity.Icon, error) {
+	icon, err := u.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -74,15 +66,12 @@ func (u *iconUsecase) Update(id string, req *UpdateIconRequest) (*entity.Icon, e
 	icon.Section = req.Section
 	icon.IsActive = req.IsActive
 
-	if err := u.repo.Update(icon); err != nil {
+	if err := u.repo.Update(ctx, icon); err != nil {
 		return nil, err
 	}
 	return icon, nil
 }
 
-func (u *iconUsecase) Delete(id string) error {
-	if _, err := u.GetByID(id); err != nil {
-		return err
-	}
-	return u.repo.Delete(id)
+func (u *iconUsecase) Delete(ctx context.Context, id string) error {
+	return u.repo.Delete(ctx, id)
 }

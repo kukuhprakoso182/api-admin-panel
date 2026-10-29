@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
+
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
@@ -17,23 +16,18 @@ func NewIconHandler(iconUsecase usecase.IconUsecase) *IconHandler {
 }
 
 func (h *IconHandler) GetAll(c *gin.Context) {
-	icons, err := h.iconUsecase.GetAll()
+	icons, err := h.iconUsecase.GetAll(c.Request.Context())
 	if err != nil {
-		response.InternalServerError(c, "failed to retrieve icons")
+		handleError(c, err, "icon")
 		return
 	}
 	response.OK(c, "icons retrieved", icons)
 }
 
 func (h *IconHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	icon, err := h.iconUsecase.GetByID(id)
+	icon, err := h.iconUsecase.GetByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "icon not found")
-			return
-		}
-		response.InternalServerError(c, "failed to retrieve icon")
+		handleError(c, err, "icon")
 		return
 	}
 	response.OK(c, "icon retrieved", icon)
@@ -45,41 +39,31 @@ func (h *IconHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	icon, err := h.iconUsecase.Create(&req)
+	icon, err := h.iconUsecase.Create(c.Request.Context(), &req)
 	if err != nil {
-		response.InternalServerError(c, "failed to create icon")
+		handleError(c, err, "icon")
 		return
 	}
 	response.Created(c, "icon created", icon)
 }
 
 func (h *IconHandler) Update(c *gin.Context) {
-	id := c.Param("id")
 	var req usecase.UpdateIconRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	icon, err := h.iconUsecase.Update(id, &req)
+	icon, err := h.iconUsecase.Update(c.Request.Context(), c.Param("id"), &req)
 	if err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "icon not found")
-			return
-		}
-		response.InternalServerError(c, "failed to update icon")
+		handleError(c, err, "icon")
 		return
 	}
 	response.OK(c, "icon updated", icon)
 }
 
 func (h *IconHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.iconUsecase.Delete(id); err != nil {
-		if errors.Is(err, usecase.ErrNotFound) {
-			response.NotFound(c, "icon not found")
-			return
-		}
-		response.InternalServerError(c, "failed to delete icon")
+	if err := h.iconUsecase.Delete(c.Request.Context(), c.Param("id")); err != nil {
+		handleError(c, err, "icon")
 		return
 	}
 	response.OK(c, "icon deleted", nil)

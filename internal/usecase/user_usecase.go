@@ -1,21 +1,21 @@
 package usecase
 
 import (
-	"errors"
+	"context"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+
 	"api-admin-panel/internal/domain/entity"
 	"api-admin-panel/internal/domain/repository"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserUsecase interface {
-	GetAll(page, limit int) ([]entity.User, int64, error)
-	GetByID(id string) (*entity.User, error)
-	Create(req *CreateUserRequest) (*entity.User, error)
-	Update(id string, req *UpdateUserRequest) (*entity.User, error)
-	Delete(id string) error
+	GetAll(ctx context.Context, page, limit int) ([]entity.User, int64, error)
+	GetByID(ctx context.Context, id string) (*entity.User, error)
+	Create(ctx context.Context, req *CreateUserRequest) (*entity.User, error)
+	Update(ctx context.Context, id string, req *UpdateUserRequest) (*entity.User, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type CreateUserRequest struct {
@@ -42,22 +42,15 @@ func NewUserUsecase(repo repository.UserRepository) UserUsecase {
 	return &userUsecase{repo: repo}
 }
 
-func (u *userUsecase) GetAll(page, limit int) ([]entity.User, int64, error) {
-	return u.repo.FindAll(page, limit)
+func (u *userUsecase) GetAll(ctx context.Context, page, limit int) ([]entity.User, int64, error) {
+	return u.repo.FindAll(ctx, page, limit)
 }
 
-func (u *userUsecase) GetByID(id string) (*entity.User, error) {
-	user, err := u.repo.FindByID(id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	return user, nil
+func (u *userUsecase) GetByID(ctx context.Context, id string) (*entity.User, error) {
+	return u.repo.FindByID(ctx, id)
 }
 
-func (u *userUsecase) Create(req *CreateUserRequest) (*entity.User, error) {
+func (u *userUsecase) Create(ctx context.Context, req *CreateUserRequest) (*entity.User, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -71,16 +64,16 @@ func (u *userUsecase) Create(req *CreateUserRequest) (*entity.User, error) {
 		Password: string(hashed),
 	}
 
-	if err := u.repo.Create(user, req.RoleIDs); err != nil {
+	if err := u.repo.Create(ctx, user, req.RoleIDs); err != nil {
 		return nil, err
 	}
 
 	// Reload agar relasi terisi
-	return u.repo.FindByID(user.ID)
+	return u.repo.FindByID(ctx, user.ID)
 }
 
-func (u *userUsecase) Update(id string, req *UpdateUserRequest) (*entity.User, error) {
-	user, err := u.GetByID(id)
+func (u *userUsecase) Update(ctx context.Context, id string, req *UpdateUserRequest) (*entity.User, error) {
+	user, err := u.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -97,16 +90,13 @@ func (u *userUsecase) Update(id string, req *UpdateUserRequest) (*entity.User, e
 		user.Password = string(hashed)
 	}
 
-	if err := u.repo.Update(user, req.RoleIDs); err != nil {
+	if err := u.repo.Update(ctx, user, req.RoleIDs); err != nil {
 		return nil, err
 	}
 
-	return u.repo.FindByID(user.ID)
+	return u.repo.FindByID(ctx, user.ID)
 }
 
-func (u *userUsecase) Delete(id string) error {
-	if _, err := u.GetByID(id); err != nil {
-		return err
-	}
-	return u.repo.Delete(id)
+func (u *userUsecase) Delete(ctx context.Context, id string) error {
+	return u.repo.Delete(ctx, id)
 }

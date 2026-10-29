@@ -51,8 +51,16 @@ func NotFound(c *gin.Context, message string) {
 	c.JSON(http.StatusNotFound, Response{Success: false, Message: message})
 }
 
+func Conflict(c *gin.Context, message string) {
+	c.JSON(http.StatusConflict, Response{Success: false, Message: message})
+}
+
 func InternalServerError(c *gin.Context, message string) {
 	c.JSON(http.StatusInternalServerError, Response{Success: false, Message: message})
+}
+
+func GatewayTimeout(c *gin.Context, message string) {
+	c.JSON(http.StatusGatewayTimeout, Response{Success: false, Message: message})
 }
 
 func Paginated(c *gin.Context, message string, data interface{}, page, limit int, total int64) {

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -18,16 +19,16 @@ type MockAuthUsecase struct {
 	mock.Mock
 }
 
-func (m *MockAuthUsecase) Login(req *usecase.LoginRequest) (*jwt.TokenPair, error) {
-	args := m.Called(req)
+func (m *MockAuthUsecase) Login(ctx context.Context, req *usecase.LoginRequest) (*jwt.TokenPair, error) {
+	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*jwt.TokenPair), args.Error(1)
 }
 
-func (m *MockAuthUsecase) RefreshToken(token string) (*jwt.TokenPair, error) {
-	args := m.Called(token)
+func (m *MockAuthUsecase) RefreshToken(ctx context.Context, token string) (*jwt.TokenPair, error) {
+	args := m.Called(ctx, token)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -43,7 +44,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		ExpiresAt:    9999999999,
 	}
 
-	mockUsecase.On("Login", mock.MatchedBy(func(req *usecase.LoginRequest) bool {
+	mockUsecase.On("Login", mock.Anything, mock.MatchedBy(func(req *usecase.LoginRequest) bool {
 		return req.Email == "admin@example.com" && req.Password == "password123"
 	})).Return(tokenPair, nil)
 
@@ -68,7 +69,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	mockUsecase := new(MockAuthUsecase)
 
-	mockUsecase.On("Login", mock.Anything).Return(nil, usecase.ErrInvalidCreds)
+	mockUsecase.On("Login", mock.Anything, mock.Anything).Return(nil, usecase.ErrInvalidCreds)
 
 	h := handler.NewAuthHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -83,6 +84,29 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, false, body["success"])
+	mockUsecase.AssertExpectations(t)
+}
+
+func TestAuthHandler_Login_UnexpectedError(t *testing.T) {
+	mockUsecase := new(MockAuthUsecase)
+
+	mockUsecase.On("Login", mock.Anything, mock.Anything).
+		Return(nil, assert.AnError)
+
+	h := handler.NewAuthHandler(mockUsecase)
+	r := testhelper.NewRouter()
+	r.POST("/auth/login", h.Login)
+
+	req := testhelper.NewRequest(http.MethodPost, "/auth/login", map[string]string{
+		"email":    "admin@example.com",
+		"password": "password123",
+	})
+	w := testhelper.Do(r, req)
+	body := testhelper.ParseBody(w)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	// detail error internal tidak boleh bocor ke klien
+	assert.Equal(t, "internal server error", body["message"])
 	mockUsecase.AssertExpectations(t)
 }
 
@@ -129,7 +153,7 @@ func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 		ExpiresAt:    9999999999,
 	}
 
-	mockUsecase.On("RefreshToken", "valid-refresh-token").Return(tokenPair, nil)
+	mockUsecase.On("RefreshToken", mock.Anything, "valid-refresh-token").Return(tokenPair, nil)
 
 	h := handler.NewAuthHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -149,7 +173,7 @@ func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 func TestAuthHandler_RefreshToken_InvalidToken(t *testing.T) {
 	mockUsecase := new(MockAuthUsecase)
 
-	mockUsecase.On("RefreshToken", "expired-token").Return(nil, usecase.ErrUnauthorized)
+	mockUsecase.On("RefreshToken", mock.Anything, "expired-token").Return(nil, usecase.ErrUnauthorized)
 
 	h := handler.NewAuthHandler(mockUsecase)
 	r := testhelper.NewRouter()

@@ -76,7 +76,7 @@ func HTTPLogger(log *logger.Logger) gin.HandlerFunc {
 			Path:       fullPath,
 			UserAgent:  c.Request.UserAgent(),
 			ReqBody:    reqBody,
-			RespBody:   truncate(rw.body.String(), 4096),
+			RespBody:   truncate(sanitizeBody(rw.body.String()), 4096),
 			StatusCode: statusCode,
 			LatencyMS:  duration.Milliseconds(),
 			Latency:    duration.String(),
@@ -86,14 +86,16 @@ func HTTPLogger(log *logger.Logger) gin.HandlerFunc {
 	}
 }
 
-// sanitizeBody menyembunyikan field sensitif sebelum ditulis ke log.
+var sensitiveKeys = []string{"password", "token", "secret", "authorization"}
+
+// sanitizeBody menyembunyikan body yang memuat field sensitif sebelum ditulis ke log.
 func sanitizeBody(body string) string {
 	if body == "" {
 		return ""
 	}
-	sensitiveFields := []string{`"password"`, `"token"`, `"secret"`}
-	for _, f := range sensitiveFields {
-		if strings.Contains(body, f) {
+	lower := strings.ToLower(body)
+	for _, k := range sensitiveKeys {
+		if strings.Contains(lower, k) {
 			return "[redacted - contains sensitive fields]"
 		}
 	}

@@ -1,10 +1,12 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
 	"api-admin-panel/internal/delivery/http/handler"
+	"api-admin-panel/internal/domain"
 	"api-admin-panel/internal/domain/entity"
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/tests/testhelper"
@@ -18,37 +20,39 @@ type MockUserUsecase struct {
 	mock.Mock
 }
 
-func (m *MockUserUsecase) GetAll(page, limit int) ([]entity.User, int64, error) {
-	args := m.Called(page, limit)
-	return args.Get(0).([]entity.User), args.Get(1).(int64), args.Error(2)
+func (m *MockUserUsecase) GetAll(ctx context.Context, page, limit int) ([]entity.User, int64, error) {
+	args := m.Called(ctx, page, limit)
+	users, _ := args.Get(0).([]entity.User)
+	total, _ := args.Get(1).(int64)
+	return users, total, args.Error(2)
 }
 
-func (m *MockUserUsecase) GetByID(id string) (*entity.User, error) {
-	args := m.Called(id)
+func (m *MockUserUsecase) GetByID(ctx context.Context, id string) (*entity.User, error) {
+	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
-func (m *MockUserUsecase) Create(req *usecase.CreateUserRequest) (*entity.User, error) {
-	args := m.Called(req)
+func (m *MockUserUsecase) Create(ctx context.Context, req *usecase.CreateUserRequest) (*entity.User, error) {
+	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
-func (m *MockUserUsecase) Update(id string, req *usecase.UpdateUserRequest) (*entity.User, error) {
-	args := m.Called(id, req)
+func (m *MockUserUsecase) Update(ctx context.Context, id string, req *usecase.UpdateUserRequest) (*entity.User, error) {
+	args := m.Called(ctx, id, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
-func (m *MockUserUsecase) Delete(id string) error {
-	return m.Called(id).Error(0)
+func (m *MockUserUsecase) Delete(ctx context.Context, id string) error {
+	return m.Called(ctx, id).Error(0)
 }
 
 func TestUserHandler_GetAll_Success(t *testing.T) {
@@ -59,7 +63,7 @@ func TestUserHandler_GetAll_Success(t *testing.T) {
 		{ID: "2", Name: "Bob", Email: "bob@example.com"},
 	}
 
-	mockUsecase.On("GetAll", 1, 10).Return(users, int64(2), nil)
+	mockUsecase.On("GetAll", mock.Anything, 1, 10).Return(users, int64(2), nil)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -79,7 +83,7 @@ func TestUserHandler_GetByID_Success(t *testing.T) {
 	mockUsecase := new(MockUserUsecase)
 
 	user := &entity.User{ID: "abc-123", Name: "Alice", Email: "alice@example.com"}
-	mockUsecase.On("GetByID", "abc-123").Return(user, nil)
+	mockUsecase.On("GetByID", mock.Anything, "abc-123").Return(user, nil)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -97,7 +101,7 @@ func TestUserHandler_GetByID_Success(t *testing.T) {
 func TestUserHandler_GetByID_NotFound(t *testing.T) {
 	mockUsecase := new(MockUserUsecase)
 
-	mockUsecase.On("GetByID", "ghost-id").Return(nil, usecase.ErrNotFound)
+	mockUsecase.On("GetByID", mock.Anything, "ghost-id").Return(nil, domain.ErrNotFound)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -119,7 +123,7 @@ func TestUserHandler_Create_Success(t *testing.T) {
 		Email: "newuser@example.com",
 	}
 
-	mockUsecase.On("Create", mock.AnythingOfType("*usecase.CreateUserRequest")).Return(created, nil)
+	mockUsecase.On("Create", mock.Anything, mock.AnythingOfType("*usecase.CreateUserRequest")).Return(created, nil)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -140,6 +144,29 @@ func TestUserHandler_Create_Success(t *testing.T) {
 	mockUsecase.AssertExpectations(t)
 }
 
+func TestUserHandler_Create_DuplicateEmail(t *testing.T) {
+	mockUsecase := new(MockUserUsecase)
+
+	mockUsecase.On("Create", mock.Anything, mock.AnythingOfType("*usecase.CreateUserRequest")).
+		Return(nil, domain.ErrAlreadyExists)
+
+	h := handler.NewUserHandler(mockUsecase)
+	r := testhelper.NewRouter()
+	r.POST("/users", h.Create)
+
+	req := testhelper.NewRequest(http.MethodPost, "/users", map[string]interface{}{
+		"name":      "Dup User",
+		"email":     "dup@example.com",
+		"password":  "password123",
+		"status_id": "active",
+		"role_ids":  []string{"admin"},
+	})
+	w := testhelper.Do(r, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	mockUsecase.AssertExpectations(t)
+}
+
 func TestUserHandler_Create_ValidationError(t *testing.T) {
 	mockUsecase := new(MockUserUsecase)
 
@@ -147,7 +174,7 @@ func TestUserHandler_Create_ValidationError(t *testing.T) {
 	r := testhelper.NewRouter()
 	r.POST("/users", h.Create)
 
-	// Email tidak valid, password kurang dari 8 char
+	// Email tidak valid, field wajib lain kosong
 	req := testhelper.NewRequest(http.MethodPost, "/users", map[string]interface{}{
 		"name":  "Bad User",
 		"email": "bukan-email",
@@ -161,7 +188,7 @@ func TestUserHandler_Create_ValidationError(t *testing.T) {
 func TestUserHandler_Delete_Success(t *testing.T) {
 	mockUsecase := new(MockUserUsecase)
 
-	mockUsecase.On("Delete", "user-to-delete").Return(nil)
+	mockUsecase.On("Delete", mock.Anything, "user-to-delete").Return(nil)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -179,7 +206,7 @@ func TestUserHandler_Delete_Success(t *testing.T) {
 func TestUserHandler_Delete_NotFound(t *testing.T) {
 	mockUsecase := new(MockUserUsecase)
 
-	mockUsecase.On("Delete", "ghost-id").Return(usecase.ErrNotFound)
+	mockUsecase.On("Delete", mock.Anything, "ghost-id").Return(domain.ErrNotFound)
 
 	h := handler.NewUserHandler(mockUsecase)
 	r := testhelper.NewRouter()
