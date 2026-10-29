@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	driver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 
 	"api-admin-panel/internal/domain"
@@ -83,12 +82,4 @@ func (r *iconRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrNotFound
 	}
 	return nil
-}
-
-func isDuplicateKey(err error) bool {
-	if errors.Is(err, gorm.ErrDuplicatedKey) {
-		return true
-	}
-	var me *driver.MySQLError
-	return errors.As(err, &me) && me.Number == 1062
 }

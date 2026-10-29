@@ -42,13 +42,13 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*pkgjwt.Tok
 		if errors.Is(err, domain.ErrNotFound) {
 			// Tetap jalankan bcrypt agar tidak bisa dibedakan dari "password salah"
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(req.Password))
-			return nil, ErrInvalidCreds
+			return nil, domain.ErrInvalidCreds
 		}
 		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, ErrInvalidCreds
+		return nil, domain.ErrInvalidCreds
 	}
 
 	return u.jwtService.GenerateTokenPair(user.ID, roleIDsCSV(user), user.Email)
@@ -57,13 +57,13 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*pkgjwt.Tok
 func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*pkgjwt.TokenPair, error) {
 	claims, err := u.jwtService.ValidateToken(refreshToken)
 	if err != nil {
-		return nil, ErrUnauthorized
+		return nil, domain.ErrUnauthorized
 	}
 
 	user, err := u.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return nil, ErrUnauthorized // user sudah dihapus
+			return nil, domain.ErrUnauthorized // user sudah dihapus
 		}
 		return nil, err
 	}

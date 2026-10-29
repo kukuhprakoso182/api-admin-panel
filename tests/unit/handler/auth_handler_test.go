@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"api-admin-panel/internal/delivery/http/handler"
+	"api-admin-panel/internal/domain"
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/jwt"
 	"api-admin-panel/tests/testhelper"
@@ -69,7 +70,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	mockUsecase := new(MockAuthUsecase)
 
-	mockUsecase.On("Login", mock.Anything, mock.Anything).Return(nil, usecase.ErrInvalidCreds)
+	mockUsecase.On("Login", mock.Anything, mock.Anything).Return(nil, domain.ErrInvalidCreds)
 
 	h := handler.NewAuthHandler(mockUsecase)
 	r := testhelper.NewRouter()
@@ -173,7 +174,7 @@ func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 func TestAuthHandler_RefreshToken_InvalidToken(t *testing.T) {
 	mockUsecase := new(MockAuthUsecase)
 
-	mockUsecase.On("RefreshToken", mock.Anything, "expired-token").Return(nil, usecase.ErrUnauthorized)
+	mockUsecase.On("RefreshToken", mock.Anything, "expired-token").Return(nil, domain.ErrUnauthorized)
 
 	h := handler.NewAuthHandler(mockUsecase)
 	r := testhelper.NewRouter()

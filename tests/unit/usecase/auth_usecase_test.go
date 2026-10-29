@@ -66,7 +66,7 @@ func TestLogin_InvalidEmail(t *testing.T) {
 	})
 
 	// "email tidak ada" harus tidak bisa dibedakan dari "password salah"
-	assert.ErrorIs(t, err, usecase.ErrInvalidCreds)
+	assert.ErrorIs(t, err, domain.ErrInvalidCreds)
 	mockRepo.AssertExpectations(t)
 	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
@@ -91,7 +91,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 		Password: "wrongpassword",
 	})
 
-	assert.ErrorIs(t, err, usecase.ErrInvalidCreds)
+	assert.ErrorIs(t, err, domain.ErrInvalidCreds)
 	mockRepo.AssertExpectations(t)
 	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
@@ -111,7 +111,7 @@ func TestLogin_DatabaseError(t *testing.T) {
 
 	// error database tidak boleh disamarkan sebagai kredensial salah
 	assert.ErrorIs(t, err, assert.AnError)
-	assert.NotErrorIs(t, err, usecase.ErrInvalidCreds)
+	assert.NotErrorIs(t, err, domain.ErrInvalidCreds)
 	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
 
@@ -124,7 +124,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
 	_, err := uc.RefreshToken(ctx, "bad-token")
 
-	assert.ErrorIs(t, err, usecase.ErrUnauthorized)
+	assert.ErrorIs(t, err, domain.ErrUnauthorized)
 	mockRepo.AssertNotCalled(t, "FindByID")
 }
 
@@ -138,7 +138,7 @@ func TestRefreshToken_UserDeleted(t *testing.T) {
 	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
 	_, err := uc.RefreshToken(ctx, "valid-token")
 
-	assert.ErrorIs(t, err, usecase.ErrUnauthorized)
+	assert.ErrorIs(t, err, domain.ErrUnauthorized)
 	mockJWT.AssertNotCalled(t, "GenerateTokenPair")
 }
 

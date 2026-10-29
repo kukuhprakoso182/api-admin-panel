@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gin-gonic/gin"
 
 	"api-admin-panel/internal/domain"
-	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
 
@@ -16,9 +16,9 @@ func handleError(c *gin.Context, err error, resource string) {
 		response.NotFound(c, resource+" not found")
 	case errors.Is(err, domain.ErrAlreadyExists):
 		response.Conflict(c, resource+" already exists")
-	case errors.Is(err, usecase.ErrUnauthorized), errors.Is(err, usecase.ErrInvalidCreds):
+	case errors.Is(err, domain.ErrUnauthorized), errors.Is(err, domain.ErrInvalidCreds):
 		response.Unauthorized(c, err.Error())
-	case errors.Is(err, usecase.ErrForbidden):
+	case errors.Is(err, domain.ErrForbidden):
 		response.Forbidden(c, "access forbidden")
 	case errors.Is(err, context.DeadlineExceeded):
 		response.GatewayTimeout(c, "request timeout")

@@ -67,8 +67,8 @@ func main() {
 
 	// ── HTTP Server ───────────────────────────────────────────────────────────
 	srv := &http.Server{
-		Addr:              addr,
-		Handler:           engine,
+		Addr:              fmt.Sprintf(":%s", cfg.App.Port),
+		Handler:           app.Engine,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      35 * time.Second, // harus lebih besar dari Timeout middleware

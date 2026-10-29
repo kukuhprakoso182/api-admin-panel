@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"api-admin-panel/internal/domain"
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
@@ -64,7 +65,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	tokenPair, err := h.authUsecase.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		if errors.Is(err, usecase.ErrUnauthorized) {
+		if errors.Is(err, domain.ErrUnauthorized) {
 			response.Unauthorized(c, "invalid or expired refresh token")
 			return
 		}
