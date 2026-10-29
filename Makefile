@@ -1,4 +1,4 @@
-.PHONY: run migrate seed migrate-seed dev build tidy lint test search-log
+.PHONY: run migrate seed migrate-seed fresh-migrate-seed dev build tidy lint test search-log docker-build docker-up docker-down docker-logs docker-search-log
 
 APP_NAME=api-admin-panel
 MAIN=./cmd/main.go
@@ -99,3 +99,10 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f app
+
+## Cari request_id di file log di dalam volume docker (image scratch tidak punya shell,
+## jadi cukup grep dari output stdout container)
+## Contoh: make docker-search-log RID=xxxx-xxxx
+docker-search-log:
+	@if [ -z "$(RID)" ]; then echo "Usage: make docker-search-log RID=<request-id>"; exit 1; fi
+	docker compose logs app 2>&1 | grep -n "$(RID)" || echo "Not found."

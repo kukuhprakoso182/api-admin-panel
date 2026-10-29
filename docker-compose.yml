@@ -7,11 +7,16 @@ services:
       - "${APP_PORT:-8080}:8080"
     env_file:
       - .env
+    environment:
+      # Di dalam container, MySQL adalah service "mysql", bukan 127.0.0.1
+      DB_HOST: mysql
+      DB_PORT: "3306"
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
-      - ./logs:/logs
+      # Named volume (bukan bind mount) agar bisa ditulis user non-root di container
+      - app_logs:/logs
     networks:
       - api-admin-panel-network
 
@@ -23,7 +28,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      # Hanya bisa diakses dari mesin host; jangan expose ke jaringan publik
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -36,6 +42,7 @@ services:
 
 volumes:
   mysql_data:
+  app_logs:
 
 networks:
   api-admin-panel-network:

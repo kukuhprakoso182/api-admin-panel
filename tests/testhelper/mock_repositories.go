@@ -136,3 +136,11 @@ func (m *MockJWTService) ValidateToken(tokenString string) (*pkgjwt.Claims, erro
 	}
 	return args.Get(0).(*pkgjwt.Claims), args.Error(1)
 }
+
+func (m *MockJWTService) ValidateRefreshToken(tokenString string) (*pkgjwt.Claims, error) {
+	args := m.Called(tokenString)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pkgjwt.Claims), args.Error(1)
+}

@@ -43,3 +43,24 @@ func JWTAuth(jwtService pkgjwt.JWTService) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// UserIDFrom mengambil user_id hasil JWTAuth dari context.
+func UserIDFrom(c *gin.Context) string {
+	return c.GetString(ContextKeyUserID)
+}
+
+// RoleIDsFrom mengambil daftar role (claim role_id berformat CSV) dari context.
+func RoleIDsFrom(c *gin.Context) []string {
+	raw := c.GetString(ContextKeyRoleID)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	ids := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			ids = append(ids, p)
+		}
+	}
+	return ids
+}

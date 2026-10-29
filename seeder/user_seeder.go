@@ -1,6 +1,9 @@
 package seeder
 
 import (
+	"errors"
+	"os"
+
 	"api-admin-panel/internal/domain/entity"
 
 	"github.com/google/uuid"
@@ -8,7 +11,24 @@ import (
 	"gorm.io/gorm"
 )
 
+// seedPassword mengambil password awal akun seed dari SEED_DEFAULT_PASSWORD.
+// Fallback "password123" hanya diizinkan di luar production.
+func seedPassword() (string, error) {
+	if pw := os.Getenv("SEED_DEFAULT_PASSWORD"); pw != "" {
+		return pw, nil
+	}
+	if os.Getenv("APP_ENV") == "production" {
+		return "", errors.New("SEED_DEFAULT_PASSWORD must be set when seeding in production")
+	}
+	return "password123", nil
+}
+
 func seedUsers(db *gorm.DB) error {
+	password, err := seedPassword()
+	if err != nil {
+		return err
+	}
+
 	type userSeed struct {
 		Name     string
 		Email    string
@@ -21,14 +41,14 @@ func seedUsers(db *gorm.DB) error {
 		{
 			Name:     "Super Administrator",
 			Email:    "superadmin@example.com",
-			Password: "password123",
+			Password: password,
 			RoleIDs:  []string{"super_admin", "admin"},
 			StatusID: "active",
 		},
 		{
 			Name:     "Administrator",
 			Email:    "admin@example.com",
-			Password: "password123",
+			Password: password,
 			RoleIDs:  []string{"admin"},
 			StatusID: "active",
 		},

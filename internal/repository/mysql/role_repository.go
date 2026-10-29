@@ -76,7 +76,7 @@ func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
 	res := r.db.WithContext(ctx).Delete(&entity.Role{}, "id = ?", id)
 	if res.Error != nil {
-		return res.Error
+		return translateWriteError(res.Error)
 	}
 	if res.RowsAffected == 0 {
 		return domain.ErrNotFound

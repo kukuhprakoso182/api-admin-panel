@@ -76,7 +76,7 @@ func (r *iconRepository) Update(ctx context.Context, icon *entity.Icon) error {
 func (r *iconRepository) Delete(ctx context.Context, id string) error {
 	res := r.db.WithContext(ctx).Delete(&entity.Icon{}, "id = ?", id)
 	if res.Error != nil {
-		return res.Error
+		return translateWriteError(res.Error)
 	}
 	if res.RowsAffected == 0 {
 		return domain.ErrNotFound

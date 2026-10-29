@@ -5,18 +5,27 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"api-admin-panel/config"
 )
 
 var (
 	ErrInvalidToken = errors.New("invalid token")
-	ErrExpiredToken  = errors.New("token has expired")
+	ErrExpiredToken = errors.New("token has expired")
+)
+
+// Tipe token. Dicek saat validasi agar refresh token tidak bisa dipakai
+// sebagai access token (dan sebaliknya).
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
 )
 
 type Claims struct {
-	UserID string `json:"user_id"`
-	RoleID string `json:"role_id"`
-	Email  string `json:"email"`
+	UserID    string `json:"user_id"`
+	RoleID    string `json:"role_id"`
+	Email     string `json:"email"`
+	TokenType string `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
@@ -28,7 +37,10 @@ type TokenPair struct {
 
 type JWTService interface {
 	GenerateTokenPair(userID, roleID, email string) (*TokenPair, error)
+	// ValidateToken memvalidasi ACCESS token (dipakai middleware).
 	ValidateToken(tokenString string) (*Claims, error)
+	// ValidateRefreshToken memvalidasi REFRESH token (dipakai endpoint refresh).
+	ValidateRefreshToken(tokenString string) (*Claims, error)
 }
 
 type jwtService struct {
@@ -39,35 +51,34 @@ func NewJWTService(cfg *config.JWTConfig) JWTService {
 	return &jwtService{cfg: cfg}
 }
 
-func (j *jwtService) GenerateTokenPair(userID, roleID, email string) (*TokenPair, error) {
-	accessExpiry := time.Now().Add(j.cfg.AccessExpireMinutes)
-
-	accessClaims := Claims{
-		UserID: userID,
-		RoleID: roleID,
-		Email:  email,
+func (j *jwtService) sign(userID, roleID, email, tokenType string, now time.Time, ttl time.Duration) (string, time.Time, error) {
+	expiry := now.Add(ttl)
+	claims := Claims{
+		UserID:    userID,
+		RoleID:    roleID,
+		Email:     email,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(accessExpiry),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(expiry),
+			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
-	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).
-		SignedString([]byte(j.cfg.Secret))
+	signed, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(j.cfg.Secret))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return signed, expiry, nil
+}
+
+func (j *jwtService) GenerateTokenPair(userID, roleID, email string) (*TokenPair, error) {
+	now := time.Now()
+
+	accessToken, accessExpiry, err := j.sign(userID, roleID, email, TokenTypeAccess, now, j.cfg.AccessExpireMinutes)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshClaims := Claims{
-		UserID: userID,
-		RoleID: roleID,
-		Email:  email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.cfg.RefreshExpireHours)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).
-		SignedString([]byte(j.cfg.Secret))
+	refreshToken, _, err := j.sign(userID, roleID, email, TokenTypeRefresh, now, j.cfg.RefreshExpireHours)
 	if err != nil {
 		return nil, err
 	}
@@ -80,12 +91,22 @@ func (j *jwtService) GenerateTokenPair(userID, roleID, email string) (*TokenPair
 }
 
 func (j *jwtService) ValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return []byte(j.cfg.Secret), nil
-	})
+	return j.parse(tokenString, TokenTypeAccess)
+}
+
+func (j *jwtService) ValidateRefreshToken(tokenString string) (*Claims, error) {
+	return j.parse(tokenString, TokenTypeRefresh)
+}
+
+func (j *jwtService) parse(tokenString, expectedType string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(t *jwt.Token) (interface{}, error) {
+			return []byte(j.cfg.Secret), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, ErrExpiredToken
@@ -95,6 +116,9 @@ func (j *jwtService) ValidateToken(tokenString string) (*Claims, error) {
 
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
+		return nil, ErrInvalidToken
+	}
+	if claims.TokenType != expectedType {
 		return nil, ErrInvalidToken
 	}
 	return claims, nil

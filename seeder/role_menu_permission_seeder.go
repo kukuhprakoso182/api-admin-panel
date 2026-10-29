@@ -8,12 +8,8 @@ import (
 )
 
 func seedRoleMenuPermissions(db *gorm.DB) error {
-	// Skip jika sudah ada data
-	var count int64
-	db.Model(&entity.RoleMenuPermission{}).Count(&count)
-	if count > 0 {
-		return nil
-	}
+	// Tidak ada early-return: setiap baris di-FirstOrCreate di bawah, sehingga
+	// menjalankan ulang seeder menambahkan permission baru tanpa duplikat.
 
 	// Cari menu berdasarkan nama
 	findMenu := func(name string) (uint64, error) {
@@ -118,6 +114,14 @@ func seedRoleMenuPermissions(db *gorm.DB) error {
 		{RoleID: "super_admin", MenuID: settings, PermissionID: "view"},
 		{RoleID: "super_admin", MenuID: assignMenuPermission, PermissionID: "view"},
 		{RoleID: "super_admin", MenuID: assignMenuPermission, PermissionID: "update"},
+
+		// ── delete (dibutuhkan middleware RequirePermission untuk HTTP DELETE) ──
+		{RoleID: "super_admin", MenuID: user, PermissionID: "delete"},
+		{RoleID: "super_admin", MenuID: status, PermissionID: "delete"},
+		{RoleID: "super_admin", MenuID: role, PermissionID: "delete"},
+		{RoleID: "super_admin", MenuID: menu, PermissionID: "delete"},
+		{RoleID: "super_admin", MenuID: permission, PermissionID: "delete"},
+		{RoleID: "super_admin", MenuID: icon, PermissionID: "delete"},
 	}
 
 	for _, s := range seeds {
