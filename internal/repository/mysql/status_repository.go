@@ -75,7 +75,7 @@ func (r *statusRepository) Update(ctx context.Context, status *entity.Status) er
 func (r *statusRepository) Delete(ctx context.Context, id string) error {
 	res := r.db.WithContext(ctx).Delete(&entity.Status{}, "id = ?", id)
 	if res.Error != nil {
-		return res.Error
+		return translateWriteError(res.Error)
 	}
 	if res.RowsAffected == 0 {
 		return domain.ErrNotFound

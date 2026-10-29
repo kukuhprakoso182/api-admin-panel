@@ -4,12 +4,12 @@
 #
 # Setup:
 # 1. Install "REST Client" extension di VS Code (Huachao Mao)
-# 2. Isi @token setelah login
+# 2. Jalankan request "Login — Super Admin" dulu; @token terisi otomatis dari responsnya
 # 3. Klik "Send Request" di atas tiap request
 # ============================================================
 
 @baseUrl = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiZGM1YTM3NmEtNzk2Ny00MTUzLWE2MTMtMGM4MGNiODMzNjk5Iiwicm9sZV9pZCI6ImFkbWluLHN1cGVyX2FkbWluIiwiZW1haWwiOiJzdXBlcmFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzc2NjU3NTQ0LCJpYXQiOjE3NzY2NTM5NDR9.eMUOe3qyRa9jTImBpW-JoPJthB1lS-zdmZPVuNBxTr4
+@token = {{login.response.body.data.access_token}}
 @contentType = application/json
 
 # ============================================================

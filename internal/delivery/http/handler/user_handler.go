@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"api-admin-panel/internal/delivery/http/middleware"
 	"api-admin-panel/internal/usecase"
 	"api-admin-panel/pkg/response"
 )
@@ -15,6 +17,14 @@ type UserHandler struct {
 
 func NewUserHandler(userUsecase usecase.UserUsecase) *UserHandler {
 	return &UserHandler{userUsecase: userUsecase}
+}
+
+// actorCtx membawa identitas pemanggil (dari JWT) ke usecase.
+func actorCtx(c *gin.Context) context.Context {
+	return usecase.WithActor(c.Request.Context(), usecase.Actor{
+		UserID:  middleware.UserIDFrom(c),
+		RoleIDs: middleware.RoleIDsFrom(c),
+	})
 }
 
 func (h *UserHandler) GetAll(c *gin.Context) {
@@ -51,7 +61,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	user, err := h.userUsecase.Create(c.Request.Context(), &req)
+	user, err := h.userUsecase.Create(actorCtx(c), &req)
 	if err != nil {
 		handleError(c, err, "user")
 		return
@@ -65,7 +75,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		response.BadRequest(c, "validation error", err.Error())
 		return
 	}
-	user, err := h.userUsecase.Update(c.Request.Context(), c.Param("id"), &req)
+	user, err := h.userUsecase.Update(actorCtx(c), c.Param("id"), &req)
 	if err != nil {
 		handleError(c, err, "user")
 		return
@@ -74,7 +84,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {
-	if err := h.userUsecase.Delete(c.Request.Context(), c.Param("id")); err != nil {
+	if err := h.userUsecase.Delete(actorCtx(c), c.Param("id")); err != nil {
 		handleError(c, err, "user")
 		return
 	}

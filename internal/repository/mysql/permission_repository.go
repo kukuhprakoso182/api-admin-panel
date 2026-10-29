@@ -75,7 +75,7 @@ func (r *permissionRepository) Update(ctx context.Context, permission *entity.Pe
 func (r *permissionRepository) Delete(ctx context.Context, id string) error {
 	res := r.db.WithContext(ctx).Delete(&entity.Permission{}, "id = ?", id)
 	if res.Error != nil {
-		return res.Error
+		return translateWriteError(res.Error)
 	}
 	if res.RowsAffected == 0 {
 		return domain.ErrNotFound

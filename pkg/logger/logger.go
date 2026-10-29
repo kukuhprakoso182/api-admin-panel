@@ -155,8 +155,25 @@ type HTTPLogEntry struct {
 	Errors     string
 }
 
+// clean mengganti karakter kontrol (termasuk \r dan \n) agar nilai yang dikontrol
+// klien (path, user agent, dst.) tidak bisa memalsukan baris log baru.
+func clean(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return '?'
+		}
+		return r
+	}, s)
+}
+
 // WriteHTTPLog menulis log request+response dalam format yang rapi dan mudah dibaca.
 func (l *Logger) WriteHTTPLog(e HTTPLogEntry) {
+	e.RequestID = clean(e.RequestID)
+	e.Method = clean(e.Method)
+	e.Path = clean(e.Path)
+	e.UserAgent = clean(e.UserAgent)
+	e.Errors = clean(e.Errors)
+
 	now := time.Now().Format("2006-01-02 15:04:05 MST")
 
 	level := "INFO"

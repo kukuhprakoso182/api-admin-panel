@@ -20,7 +20,9 @@ func Run(db *gorm.DB, fresh bool) error {
 	}
 
 	if fresh {
-		db.Migrator().DropTable(tables...)
+		if err := db.Migrator().DropTable(tables...); err != nil {
+			return err
+		}
 	}
 
 	for _, table := range tables {

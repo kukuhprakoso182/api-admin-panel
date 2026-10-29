@@ -28,6 +28,7 @@ func TestLogin_Success(t *testing.T) {
 		ID:       "user-123",
 		Email:    "admin@example.com",
 		Password: string(hashed),
+		StatusID: "active",
 		Roles:    []entity.Role{{ID: "admin"}},
 	}
 
@@ -119,7 +120,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
 	mockJWT := new(testhelper.MockJWTService)
 
-	mockJWT.On("ValidateToken", "bad-token").Return(nil, assert.AnError)
+	mockJWT.On("ValidateRefreshToken", "bad-token").Return(nil, assert.AnError)
 
 	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)
 	_, err := uc.RefreshToken(ctx, "bad-token")
@@ -132,7 +133,7 @@ func TestRefreshToken_UserDeleted(t *testing.T) {
 	mockRepo := new(testhelper.MockUserRepository)
 	mockJWT := new(testhelper.MockJWTService)
 
-	mockJWT.On("ValidateToken", "valid-token").Return(&pkgjwt.Claims{UserID: "ghost"}, nil)
+	mockJWT.On("ValidateRefreshToken", "valid-token").Return(&pkgjwt.Claims{UserID: "ghost"}, nil)
 	mockRepo.On("FindByID", mock.Anything, "ghost").Return(nil, domain.ErrNotFound)
 
 	uc := usecase.NewAuthUsecase(mockRepo, mockJWT)

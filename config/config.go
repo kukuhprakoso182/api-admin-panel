@@ -69,18 +69,32 @@ func Load() (*Config, error) {
 	}
 
 	// ── Parse numerik ──────────────────────────────────────────────────────
-	maxOpenConns, _       := strconv.Atoi(getEnv("DB_MAX_OPEN_CONNS", "25"))
-	maxIdleConns, _       := strconv.Atoi(getEnv("DB_MAX_IDLE_CONNS", "10"))
-	connMaxLifetimeSec, _ := strconv.Atoi(getEnv("DB_CONN_MAX_LIFETIME", "300"))
-	accessExpireMin, _    := strconv.Atoi(getEnv("JWT_ACCESS_EXPIRES_MINUTES", "60"))
-	refreshExpireHours, _ := strconv.Atoi(getEnv("JWT_REFRESH_EXPIRES_HOURS", "168"))
+	// Nilai yang salah ketik harus gagal keras, bukan diam-diam jadi 0
+	// (mis. token yang langsung kedaluwarsa atau pool koneksi tak terbatas).
+	maxOpenConns, err := getEnvPositiveInt("DB_MAX_OPEN_CONNS", 25)
+	if err != nil {
+		return nil, err
+	}
+	maxIdleConns, err := getEnvPositiveInt("DB_MAX_IDLE_CONNS", 10)
+	if err != nil {
+		return nil, err
+	}
+	connMaxLifetimeSec, err := getEnvPositiveInt("DB_CONN_MAX_LIFETIME", 300)
+	if err != nil {
+		return nil, err
+	}
+	accessExpireMin, err := getEnvPositiveInt("JWT_ACCESS_EXPIRES_MINUTES", 60)
+	if err != nil {
+		return nil, err
+	}
+	refreshExpireHours, err := getEnvPositiveInt("JWT_REFRESH_EXPIRES_HOURS", 168)
+	if err != nil {
+		return nil, err
+	}
 
 	// ── CORS origins ───────────────────────────────────────────────────────
-	allowOrigins := strings.Split(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000"), ",")
-	allowHeaders := strings.Split(
-		getEnv("CORS_ALLOW_HEADERS", "Authorization,Content-Type,X-Request-ID"),
-		",",
-	)
+	allowOrigins := splitCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000"))
+	allowHeaders := splitCSV(getEnv("CORS_ALLOW_HEADERS", "Authorization,Content-Type,X-Request-ID"))
 
 	return &Config{
 		App: AppConfig{
@@ -117,6 +131,31 @@ func (d *DatabaseConfig) DSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		d.User, d.Password, d.Host, d.Port, d.Name,
 	)
+}
+
+// getEnvPositiveInt membaca env bertipe int > 0; fallback dipakai jika env kosong.
+func getEnvPositiveInt(key string, fallback int) (int, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return 0, fmt.Errorf("%s must be a positive integer, got %q", key, raw)
+	}
+	return n, nil
+}
+
+// splitCSV memecah "a, b ,c" menjadi ["a","b","c"] dan membuang elemen kosong.
+func splitCSV(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func getEnv(key, fallback string) string {

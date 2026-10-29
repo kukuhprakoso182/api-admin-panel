@@ -51,11 +51,16 @@ func (u *authUsecase) Login(ctx context.Context, req *LoginRequest) (*pkgjwt.Tok
 		return nil, domain.ErrInvalidCreds
 	}
 
+	// Dicek SETELAH password benar agar status akun tidak bisa ditebak tanpa kredensial.
+	if !isLoginAllowed(user) {
+		return nil, domain.ErrForbidden
+	}
+
 	return u.jwtService.GenerateTokenPair(user.ID, roleIDsCSV(user), user.Email)
 }
 
 func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*pkgjwt.TokenPair, error) {
-	claims, err := u.jwtService.ValidateToken(refreshToken)
+	claims, err := u.jwtService.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
@@ -68,9 +73,21 @@ func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*p
 		return nil, err
 	}
 
+	// User yang sudah dinonaktifkan/disuspend tidak boleh memperpanjang sesi.
+	if !isLoginAllowed(user) {
+		return nil, domain.ErrUnauthorized
+	}
+
 	// Role diambil ulang dari database, bukan dari token lama,
 	// sehingga perubahan role langsung berlaku saat refresh.
 	return u.jwtService.GenerateTokenPair(user.ID, roleIDsCSV(user), user.Email)
+}
+
+// StatusActive adalah ID status (lihat seeder) yang boleh login.
+const StatusActive = "active"
+
+func isLoginAllowed(user *entity.User) bool {
+	return user.StatusID == StatusActive
 }
 
 func roleIDsCSV(user *entity.User) string {

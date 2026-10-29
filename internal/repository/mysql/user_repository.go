@@ -77,10 +77,7 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User, roleIDs 
 		}
 		return syncRoles(tx, user.ID, roleIDs)
 	})
-	if isDuplicateKey(err) {
-		return domain.ErrAlreadyExists
-	}
-	return err
+	return translateWriteError(err)
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User, roleIDs []string) error {
@@ -106,14 +103,11 @@ func (r *userRepository) Update(ctx context.Context, user *entity.User, roleIDs 
 		}
 		return syncRoles(tx, user.ID, roleIDs)
 	})
-	if isDuplicateKey(err) {
-		return domain.ErrAlreadyExists
-	}
-	return err
+	return translateWriteError(err)
 }
 
 func (r *userRepository) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Hapus pivot terlebih dahulu
 		if err := tx.Where("user_id = ?", id).Delete(&entity.UserRole{}).Error; err != nil {
 			return err
@@ -127,6 +121,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 		}
 		return nil
 	})
+	return translateWriteError(err)
 }
 
 // syncRoles menghapus semua role lama lalu insert yang baru dalam satu batch.

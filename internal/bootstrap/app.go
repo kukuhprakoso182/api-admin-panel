@@ -45,7 +45,7 @@ func New(cfg *config.Config, log *logger.Logger) (*App, error) {
 	handlers   := initHandlers(usecases)
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := httpdelivery.NewRouter(log, cfg, jwtService, handlers)
+	router := httpdelivery.NewRouter(log, cfg, jwtService, handlers, repos.roleMenuPermission)
 	engine := router.Setup()
 
 	return &App{
@@ -95,7 +95,7 @@ type usecaseContainer struct {
 func initUsecases(r *repoContainer, jwtService pkgjwt.JWTService) *usecaseContainer {
 	return &usecaseContainer{
 		auth:       usecase.NewAuthUsecase(r.user, jwtService),
-		user:       usecase.NewUserUsecase(r.user),
+		user:       usecase.NewUserUsecase(r.user, usecase.WithRoleRepository(r.role)),
 		icon:       usecase.NewIconUsecase(r.icon),
 		status:     usecase.NewStatusUsecase(r.status),
 		role:       usecase.NewRoleUsecase(r.role),

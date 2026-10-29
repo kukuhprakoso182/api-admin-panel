@@ -47,7 +47,13 @@ func main() {
 	}
 
 	// ── Migrations ────────────────────────────────────────────────────────────
-	if *withMigrate && *withFresh {
+	if *withFresh && !*withMigrate {
+		log.Fatal("-fresh requires -migrate (otherwise tables would be dropped and not recreated)")
+	}
+	if *withFresh && cfg.App.Env == "production" {
+		log.Fatal("refusing to run -fresh when APP_ENV=production")
+	}
+	if *withMigrate {
 		if err := migrations.Run(app.DB, *withFresh); err != nil {
 			log.Fatal("failed to run migrations", applogger.F("error", err))
 		}

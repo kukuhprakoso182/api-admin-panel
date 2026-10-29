@@ -19,15 +19,17 @@ type Router struct {
 	cfg        *config.Config
 	jwtService pkgjwt.JWTService
 	handlers   *handler.Handlers
+	permission middleware.PermissionChecker
 }
 
-func NewRouter(log *logger.Logger, cfg *config.Config, jwtService pkgjwt.JWTService, handlers *handler.Handlers) *Router {
+func NewRouter(log *logger.Logger, cfg *config.Config, jwtService pkgjwt.JWTService, handlers *handler.Handlers, permission middleware.PermissionChecker) *Router {
 	return &Router{
 		engine:     gin.New(),
 		log:        log,
 		cfg:        cfg,
 		jwtService: jwtService,
 		handlers:   handlers,
+		permission: permission,
 	}
 }
 
@@ -64,12 +66,13 @@ func (r *Router) Setup() *gin.Engine {
 	protected.Use(middleware.JWTAuth(r.jwtService))
 	protected.Use(middleware.RateLimitByUser(120, time.Minute)) // maks 120 req/menit/user
 	{
-		r.registerCRUD(protected, "/users", r.handlers.User)
-		r.registerCRUD(protected, "/icons", r.handlers.Icon)
-		r.registerCRUD(protected, "/statuses", r.handlers.Status)
-		r.registerCRUD(protected, "/roles", r.handlers.Role)
-		r.registerCRUD(protected, "/menus", r.handlers.Menu)
-		r.registerCRUD(protected, "/permissions", r.handlers.Permission)
+		// Argumen ke-3 = menus.link yang dipakai tabel role_menu_permission
+		r.registerCRUD(protected, "/users", "users", r.handlers.User)
+		r.registerCRUD(protected, "/icons", "settings/icons", r.handlers.Icon)
+		r.registerCRUD(protected, "/statuses", "settings/statuses", r.handlers.Status)
+		r.registerCRUD(protected, "/roles", "settings/roles", r.handlers.Role)
+		r.registerCRUD(protected, "/menus", "settings/menus", r.handlers.Menu)
+		r.registerCRUD(protected, "/permissions", "settings/permissions", r.handlers.Permission)
 	}
 
 	return r.engine
@@ -97,8 +100,9 @@ type CRUDHandler interface {
 	Delete(c *gin.Context)
 }
 
-func (r *Router) registerCRUD(group *gin.RouterGroup, path string, h CRUDHandler) {
+func (r *Router) registerCRUD(group *gin.RouterGroup, path, menuLink string, h CRUDHandler) {
 	g := group.Group(path)
+	g.Use(middleware.RequirePermission(r.permission, menuLink))
 	g.GET("", h.GetAll)
 	g.GET("/:id", h.GetByID)
 	g.POST("", h.Create)
